@@ -3,6 +3,7 @@ import json
 from bs4 import BeautifulSoup
 from fake_headers import Headers
 
+
 # Создаем функцию записи полученных в ходе парсинга данных в json файл
 def json_write(data):
     with open('search_result.json', 'w', encoding='UTF-8') as f:
@@ -36,10 +37,10 @@ for vacancy in vacancies:
     vacancy_link_tag = vacancy.find('a', class_='bloko-link')
     link = vacancy_link_tag['href']
 
-    address_tag = vacancy.find('div', class_='vacancy-serp-item-body__main-info').text
-    for city in cities:
-        if city in address_tag:
-            address = city
+    city_tag = vacancy.find('div', class_='vacancy-serp-item-body__main-info').text
+    for town in cities:
+        if town in city_tag:
+            city = town
         else:
             pass
 
@@ -52,11 +53,12 @@ for vacancy in vacancies:
     description_tag = vacancy_soup.find('div', class_='g-user-content')
     description = description_tag.text
 
-    salary_tag = vacancy_soup.find('span', class_='bloko-header-section-2 bloko-header-section-2_lite')
+    salary_tag = vacancy_soup.find('span', class_='bloko-header-section-2')
     salary = salary_tag.text
 
-    # Очищаем данные о ЗП для записи в список (без сплита и джоина неверно распознаются), предусматриваем проверку на предмет отсутствия данных о ЗП
-    if '₽' in salary:
+    # Очищаем данные о ЗП для записи в список (без сплита и джоина неверное распознаются), предусматриваем проверку на предмет отсутствия данных о ЗП
+
+    if '$' in salary or '₽' in salary or '€' in salary:
         salary = salary.split()
         salary = ' '.join(salary)
     else:
@@ -65,15 +67,17 @@ for vacancy in vacancies:
     employee_tag = vacancy_soup.find('span', class_='vacancy-company-name')
     employee = employee_tag.text
 
-    # Проверяем полученные данные на предмет наличия заданных ключевых слов в тексте объявления, при наличии - записываем данные в список data_list
+    # Проверяем полученные данные на предмет наличия заданных ключевых слов в тексте объявления, при наличии - записываем данные в список data_list, если зарплата указана (в связи с отсутствием подходящих вакансий с зарплатой в $ на текущий момент пришлось немного расширить условие поиска)
     for keyword in keywords:
-        if keyword in description:
+        if keyword in description and ('$' in salary or '₽' in salary or '€' in salary):
             data = {
                 'link': link,
                 'salary': salary,
                 'employee': employee,
-                'address': address
+                'city': city
             }
+            if data in data_list:
+                continue
             data_list.append(data)
 
 # Записываем полученный список data_list в файл JSON
